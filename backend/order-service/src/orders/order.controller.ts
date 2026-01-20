@@ -1,0 +1,82 @@
+import { Controller, Logger } from "@nestjs/common";
+import { GrpcMethod } from "@nestjs/microservices";
+import { OrderService } from "./order.service";
+
+interface CreateOrderRequest {
+  product_id: string;
+  quantity: number;
+  user_id: string;
+}
+
+interface GetOrderRequest {
+  order_id: string;
+}
+
+@Controller()
+export class OrderController {
+  private readonly logger = new Logger(OrderController.name);
+
+  constructor(private readonly service: OrderService) {}
+
+  @GrpcMethod("OrderService", "CreateOrder")
+  async createOrder(request: CreateOrderRequest) {
+    this.logger.log(`CreateOrder request product=${request.product_id}`);
+    const [result, error] = await this.service.createOrder(
+      request.product_id,
+      request.quantity,
+      request.user_id
+    );
+    if (!result) {
+      return {
+        success: false,
+        code: error === "Inventory service unavailable" ? "INVENTORY_UNAVAILABLE" : "ORDER_FAILED",
+        message: error ?? "Order failed",
+        data: { order_id: "", status: "FAILED", message: error ?? "Order failed" },
+      };
+    }
+
+    return {
+      success: result.status === "CONFIRMED",
+      code: result.code,
+      message: result.message,
+      data: {
+        order_id: result.orderId,
+        status: result.status,
+        message: result.message,
+      },
+    };
+  }
+
+  @GrpcMethod("OrderService", "GetOrder")
+  async getOrder(request: GetOrderRequest) {
+    this.logger.log(`GetOrder request ${request.order_id}`);
+    const [order] = await this.service.getOrder(request.order_id);
+    if (!order) {
+      return {
+        success: false,
+        code: "ORDER_NOT_FOUND",
+        message: "Order not found",
+        data: {
+          order_id: request.order_id,
+          status: "UNKNOWN",
+          product_id: "",
+          quantity: 0,
+          user_id: "",
+        },
+      };
+    }
+
+    return {
+      success: true,
+      code: "OK",
+      message: "Order fetched",
+      data: {
+        order_id: order.id,
+        status: order.status,
+        product_id: order.product_id,
+        quantity: order.quantity,
+        user_id: order.user_id,
+      },
+    };
+  }
+}

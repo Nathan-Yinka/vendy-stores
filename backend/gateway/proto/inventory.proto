@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package inventory;
+
+service InventoryService {
+  rpc GetProduct (GetProductRequest) returns (GetProductResponse);
+  rpc ReserveStock (ReserveStockRequest) returns (ReserveStockResponse);
+  rpc CreateProduct (CreateProductRequest) returns (CreateProductResponse);
+  rpc ListProducts (ListProductsRequest) returns (ListProductsResponse);
+}
+
+message GetProductRequest {
+  string product_id = 1;
+}
+
+message ProductData {
+  string product_id = 1;
+  string name = 2;
+  int32 stock = 3;
+}
+
+message GetProductResponse {
+  bool success = 1;
+  string code = 2;
+  string message = 3;
+  ProductData data = 4;
+}
+
+message ReserveStockRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+  string order_id = 3;
+}
+
+message ReserveStockData {
+  int32 remaining_stock = 1;
+  string name = 2;
+}
+
+message ReserveStockResponse {
+  bool success = 1;
+  string code = 2;
+  string message = 3;
+  ReserveStockData data = 4;
+}
+
+message CreateProductRequest {
+  string name = 1;
+  int32 stock = 2;
+}
+
+message CreateProductResponse {
+  bool success = 1;
+  string code = 2;
+  string message = 3;
+  ProductData data = 4;
+}
+
+message ListProductsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message ListProductsData {
+  repeated ProductData items = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  int32 total = 4;
+}
+
+message ListProductsResponse {
+  bool success = 1;
+  string code = 2;
+  string message = 3;
+  ListProductsData data = 4;
+}

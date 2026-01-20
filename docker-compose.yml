@@ -1,0 +1,120 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  nats:
+    image: nats:2.10
+    ports:
+      - "4222:4222"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  inventory-service:
+    build: ./backend/inventory-service
+    environment:
+      INVENTORY_DATABASE_URL: postgres://postgres:postgres@postgres:5432/inventory_db
+      INVENTORY_GRPC_URL: 0.0.0.0:50051
+      INVENTORY_PROTO_PATH: ./proto/inventory.proto
+      INVENTORY_RESERVED_SUBJECT: inventory.reserved
+      INVENTORY_CREATED_SUBJECT: inventory.created
+      HEALTH_INTERVAL_MS: 5000
+      HEALTH_GATEWAY_URL: http://gateway:3000
+      HEALTH_PING_SUBJECT: health.ping
+      SERVICE_NAME: inventory-service
+      NATS_URL: nats://nats:4222
+    depends_on:
+      - postgres
+      - nats
+    ports:
+      - "50051:50051"
+
+  order-service:
+    build: ./backend/order-service
+    environment:
+      ORDER_DATABASE_URL: postgres://postgres:postgres@postgres:5432/order_db
+      ORDER_GRPC_URL: 0.0.0.0:50052
+      ORDER_PROTO_PATH: ./proto/order.proto
+      ORDER_CREATED_SUBJECT: order.created
+      INVENTORY_GRPC_URL: inventory-service:50051
+      INVENTORY_PROTO_PATH: ./proto/inventory.proto
+      HEALTH_INTERVAL_MS: 5000
+      HEALTH_GATEWAY_URL: http://gateway:3000
+      HEALTH_PING_SUBJECT: health.ping
+      SERVICE_NAME: order-service
+      NATS_URL: nats://nats:4222
+    depends_on:
+      - postgres
+      - inventory-service
+      - nats
+    ports:
+      - "50052:50052"
+
+  auth-service:
+    build: ./backend/auth-service
+    environment:
+      AUTH_DATABASE_URL: postgres://postgres:postgres@postgres:5432/auth_db
+      AUTH_GRPC_URL: 0.0.0.0:50053
+      AUTH_JWT_SECRET: vendyz-secret
+      AUTH_JWT_EXPIRES_IN: 1h
+      AUTH_PROTO_PATH: ./proto/auth.proto
+      HEALTH_INTERVAL_MS: 5000
+      HEALTH_GATEWAY_URL: http://gateway:3000
+      HEALTH_PING_SUBJECT: health.ping
+      SERVICE_NAME: auth-service
+      NATS_URL: nats://nats:4222
+    depends_on:
+      - postgres
+    ports:
+      - "50053:50053"
+
+  gateway:
+    build: ./backend/gateway
+    environment:
+      GATEWAY_PORT: 3000
+      AUTH_GRPC_URL: auth-service:50053
+      AUTH_PROTO_PATH: ./proto/auth.proto
+      ORDER_GRPC_URL: order-service:50052
+      ORDER_PROTO_PATH: ./proto/order.proto
+      INVENTORY_GRPC_URL: inventory-service:50051
+      INVENTORY_PROTO_PATH: ./proto/inventory.proto
+      CORS_ORIGIN: http://localhost:5173
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      INVENTORY_RESERVED_SUBJECT: inventory.reserved
+      INVENTORY_CREATED_SUBJECT: inventory.created
+      HEALTH_PING_SUBJECT: health.ping
+      CACHE_TTL_SECONDS: 10
+    depends_on:
+      - auth-service
+      - order-service
+      - inventory-service
+      - redis
+      - nats
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_GATEWAY_URL: http://localhost:3000
+    depends_on:
+      - gateway
+    ports:
+      - "5173:4173"
+
+volumes:
+  postgres_data:
