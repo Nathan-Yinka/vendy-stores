@@ -18,6 +18,12 @@ AUTH_SEED_EMAIL=lead@vendyz.dev
 AUTH_SEED_PASSWORD=flashsale
 ```
 
+## Screenshots
+
+![Swagger](swagger_image.png)
+
+![UI](ui_image.png)
+
 ## Architecture (ADR)
 
 **Database choice:** Postgres
@@ -39,6 +45,40 @@ AUTH_SEED_PASSWORD=flashsale
 **Why a Gateway:**
 - Single entry point for auth, validation, and response formatting.
 - Central place for rate limits, auth, and API documentation.
+
+## Architecture Flow
+
+Text block diagram keeps the flow readable in any terminal/README renderer without extra tools.
+
+```
+Client (React)
+  |
+  v
+Gateway (REST + Swagger)
+  |  \
+  |   \__ Auth Service (gRPC) -> Postgres (auth_db)
+  |
+  +--> Order Service (gRPC) -> Postgres (order_db)
+  |          |
+  |          +--> Inventory Service (gRPC) -> Postgres (inventory_db)
+  |
+  +--> Redis (product cache)
+  |
+  +--> NATS (events: inventory reserved/created, health pings)
+              ^
+              |
+         Auth/Order/Inventory services publish events
+```
+
+Flow summary:
+- The client only talks to the Gateway.
+- The Gateway calls Auth/Inventory/Order over gRPC.
+- Order reserves stock in Inventory (transaction + row lock) before confirming.
+- Inventory and Order publish events to NATS; Gateway uses those for cache and health.
+
+Health monitoring:
+- Each service publishes a heartbeat to NATS on `health.ping`.
+- Gateway tracks last-seen timestamps and pushes status via WebSocket to the UI.
 
 ## Services
 - Auth Service (JWT + roles)

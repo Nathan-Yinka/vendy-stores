@@ -66,7 +66,7 @@ services:
       AUTH_DATABASE_URL: postgres://postgres:postgres@postgres:5432/auth_db
       AUTH_GRPC_URL: 0.0.0.0:50053
       AUTH_JWT_SECRET: vendyz-secret
-      AUTH_JWT_EXPIRES_IN: 2h
+      AUTH_JWT_EXPIRES_IN: 24h
       AUTH_SEED_EMAIL: lead@vendyz.dev
       AUTH_SEED_PASSWORD: flashsale
       AUTH_SEED_ROLE: ADMIN
