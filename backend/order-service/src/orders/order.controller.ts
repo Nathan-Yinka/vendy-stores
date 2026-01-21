@@ -6,6 +6,7 @@ interface CreateOrderRequest {
   product_id: string;
   quantity: number;
   user_id: string;
+  idempotency_key?: string;
 }
 
 interface GetOrderRequest {
@@ -30,7 +31,8 @@ export class OrderController {
     const [result, error] = await this.service.createOrder(
       request.product_id,
       request.quantity,
-      request.user_id
+      request.user_id,
+      request.idempotency_key
     );
     if (!result) {
       return {

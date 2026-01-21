@@ -1,18 +1,32 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { Order } from "../entities/order.entity";
 
 @Injectable()
 export class OrderRepository {
-  constructor(@InjectRepository(Order) private readonly repository: Repository<Order>) {}
+  constructor(
+    @InjectRepository(Order) private readonly repository: Repository<Order>,
+    private readonly dataSource: DataSource
+  ) {}
 
   async create(order: Order): Promise<void> {
-    await this.repository.save(order);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.save(Order, order);
+    });
   }
 
   async findById(orderId: string): Promise<Order | null> {
     return this.repository.findOne({ where: { id: orderId } });
+  }
+
+  async findByIdempotencyKey(
+    userId: string,
+    key: string
+  ): Promise<Order | null> {
+    return this.repository.findOne({
+      where: { user_id: userId, idempotency_key: key },
+    });
   }
 
   async listByUser(

@@ -52,12 +52,32 @@ export class OrderService {
   async createOrder(
     productId: string,
     quantity: number,
-    userId: string
+    userId: string,
+    idempotencyKey?: string
   ): Promise<
     Result<{ orderId: string; status: string; message: string; code: string }>
   > {
     const orderId = randomUUID();
     this.logger.log(`Create order ${orderId} product=${productId} user=${userId}`);
+
+    if (idempotencyKey) {
+      const existing = await this.repository.findByIdempotencyKey(
+        userId,
+        idempotencyKey
+      );
+      if (existing) {
+        this.logger.log(`Idempotent hit for user=${userId} key=${idempotencyKey}`);
+        return [
+          {
+            orderId: existing.id,
+            status: existing.status,
+            message: "Order already processed",
+            code: existing.status === "CONFIRMED" ? "OK" : "ORDER_FAILED",
+          },
+          null,
+        ];
+      }
+    }
 
     if (!this.inventoryService) {
       this.logger.error(`Inventory service unavailable for order ${orderId}`);
@@ -109,6 +129,7 @@ export class OrderService {
         product_id: productId,
         quantity,
         user_id: userId,
+        idempotency_key: idempotencyKey ?? null,
         status: "FAILED",
       });
 
@@ -138,13 +159,38 @@ export class OrderService {
     const status = response.success ? "CONFIRMED" : "FAILED";
     const code = response.success ? "OK" : response.code || "ORDER_FAILED";
 
-    await this.repository.create({
-      id: orderId,
-      product_id: productId,
-      quantity,
-      user_id: userId,
-      status,
-    });
+    try {
+      await this.repository.create({
+        id: orderId,
+        product_id: productId,
+        quantity,
+        user_id: userId,
+        idempotency_key: idempotencyKey ?? null,
+        status,
+      });
+    } catch (error) {
+      if (idempotencyKey) {
+        const existing = await this.repository.findByIdempotencyKey(
+          userId,
+          idempotencyKey
+        );
+        if (existing) {
+          this.logger.log(
+            `Idempotent conflict resolved for user=${userId} key=${idempotencyKey}`
+          );
+          return [
+            {
+              orderId: existing.id,
+              status: existing.status,
+              message: "Order already processed",
+              code: existing.status === "CONFIRMED" ? "OK" : "ORDER_FAILED",
+            },
+            null,
+          ];
+        }
+      }
+      throw error;
+    }
 
     await this.publisher.publish(
       this.config.get<string>("order.createdSubject", "order.created"),

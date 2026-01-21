@@ -16,6 +16,10 @@ export class Order {
   @Index()
   user_id!: string;
 
+  @Column({ type: "text", nullable: true })
+  @Index("IDX_ORDER_IDEMPOTENCY", { unique: true })
+  idempotency_key!: string | null;
+
   @Column({ type: "text" })
   status!: string;
 }
