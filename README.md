@@ -80,6 +80,10 @@ Health monitoring:
 - Each service publishes a heartbeat to NATS on `health.ping`.
 - Gateway tracks last-seen timestamps and pushes status via WebSocket to the UI.
 
+Idempotency:
+- `POST /api/v1/orders` accepts `Idempotency-Key` header for safe retries.
+- The Order service stores the key and returns the existing order if the same key is replayed.
+
 ## Services
 - Auth Service (JWT + roles)
 - Inventory Service (stock source of truth)
