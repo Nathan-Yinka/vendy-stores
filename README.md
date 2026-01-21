@@ -20,9 +20,9 @@ AUTH_SEED_PASSWORD=flashsale
 
 ## Screenshots
 
-![Swagger](swagger_image.png)
+![Swagger](frontend/assess/swagger_image.png)
 
-![UI](ui_image.png)
+![UI](frontend/assess/ui_image.png)
 
 ## Architecture (ADR)
 
