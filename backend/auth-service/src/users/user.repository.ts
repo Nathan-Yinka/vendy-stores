@@ -3,22 +3,32 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { User } from "./user.entity";
 import bcrypt from "bcryptjs";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class UserRepository {
-  constructor(@InjectRepository(User) private readonly repository: Repository<User>) {}
+  constructor(
+    @InjectRepository(User) private readonly repository: Repository<User>,
+    private readonly config: ConfigService
+  ) {}
 
   async seedDefault(): Promise<void> {
+    const seedEmail = this.config.get<string>("auth.seed.email");
+    const seedPassword = this.config.get<string>("auth.seed.password");
+    if (!seedEmail || !seedPassword) {
+      return;
+    }
+
     const existing = await this.repository.findOne({
-      where: { email: "lead@vendyz.dev" },
+      where: { email: seedEmail },
     });
-    const hashedPassword = await bcrypt.hash("flashsale", 10);
+    const hashedPassword = await bcrypt.hash(seedPassword, 10);
     const seedUser = {
       id: existing?.id ?? "user-1",
-      email: "lead@vendyz.dev",
-      role: "ADMIN",
-      first_name: "Lead",
-      last_name: "Engineer",
+      email: seedEmail,
+      role: this.config.get<string>("auth.seed.role", "ADMIN"),
+      first_name: this.config.get<string>("auth.seed.firstName", "Lead"),
+      last_name: this.config.get<string>("auth.seed.lastName", "Engineer"),
       password: hashedPassword,
     };
 

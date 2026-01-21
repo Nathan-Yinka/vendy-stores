@@ -7,6 +7,13 @@ export const configuration = () => ({
     jwtExpiresIn: process.env.AUTH_JWT_EXPIRES_IN ?? "1h",
     protoPath:
       process.env.AUTH_PROTO_PATH ?? join(process.cwd(), "proto", "auth.proto"),
+    seed: {
+      email: process.env.AUTH_SEED_EMAIL,
+      password: process.env.AUTH_SEED_PASSWORD,
+      role: process.env.AUTH_SEED_ROLE ?? "ADMIN",
+      firstName: process.env.AUTH_SEED_FIRST_NAME ?? "Lead",
+      lastName: process.env.AUTH_SEED_LAST_NAME ?? "Engineer",
+    },
   },
   database: {
     url: process.env.AUTH_DATABASE_URL,

@@ -226,9 +226,9 @@ const ProductView: React.FC = () => {
 
   return (
     <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-8 shadow-xl">
-      <h2 className="text-2xl font-semibold">Flash Sale</h2>
+      <h2 className="text-2xl font-semibold">Products</h2>
       <p className="mt-2 text-sm text-slate-400">
-        Select a product and attempt to buy the last unit.
+        Select a product, pick a quantity, and place your order.
       </p>
       <div className="mt-4 space-y-3">
         {loadingList ? (

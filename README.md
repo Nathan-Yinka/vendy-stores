@@ -12,10 +12,10 @@ docker-compose up --build
 - Swagger: http://localhost:3000/docs
 - Frontend: http://localhost:5173
 
-Seeded user:
+Seeded user (configured via env):
 ```
-email: lead@vendyz.dev
-password: flashsale
+AUTH_SEED_EMAIL=lead@vendyz.dev
+AUTH_SEED_PASSWORD=flashsale
 ```
 
 ## Architecture (ADR)

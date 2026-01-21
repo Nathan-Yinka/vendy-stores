@@ -85,9 +85,9 @@ const LoginPanel: React.FC = () => {
 
   return (
     <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-8 shadow-xl">
-      <h2 className="text-2xl font-semibold">Operator Login</h2>
+      <h2 className="text-2xl font-semibold">Login</h2>
       <p className="mt-2 text-sm text-slate-400">
-        Use the seeded account to authenticate before buying.
+        Sign in to place orders and view your history.
       </p>
       <form className="mt-6 space-y-4" onSubmit={(event) => void handleLogin(event)}>
         <input
