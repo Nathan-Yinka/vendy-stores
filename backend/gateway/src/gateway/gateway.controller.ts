@@ -22,6 +22,7 @@ import { ListProductsDto } from "./dto/list-products.dto";
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiHeader,
   ApiOperation,
   ApiResponse,
   ApiQuery,
@@ -323,6 +324,11 @@ export class GatewayController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create order" })
   @ApiBody({ type: CreateOrderDto })
+  @ApiHeader({
+    name: "Idempotency-Key",
+    required: false,
+    description: "Optional idempotency key for safe retries",
+  })
   @ApiResponse({
     status: 200,
     description: "Order processed",
@@ -368,12 +374,14 @@ export class GatewayController {
   })
   async createOrder(
     @AuthUser() user: AuthUserPayload | undefined,
-    @Body() body: CreateOrderDto
+    @Body() body: CreateOrderDto,
+    @Headers("idempotency-key") idempotencyKey?: string
   ) {
     return this.service.createOrder({
       productId: body.productId,
       quantity: body.quantity,
       userId: user?.userId ?? "",
+      idempotencyKey,
     });
   }
 

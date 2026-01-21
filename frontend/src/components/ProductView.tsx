@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import { clearOrderResult, setOrderResult } from "../app/slices/orderSlice";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
@@ -40,6 +40,8 @@ const ProductView: React.FC = () => {
   const ordersLimit = 5;
   const [editStock, setEditStock] = useState<number | "">("");
   const [editStatus, setEditStatus] = useState("");
+  const pendingIdempotencyKey = useRef<string | null>(null);
+  const pendingIdempotencyCount = useRef(0);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(total / limit)),
@@ -104,6 +106,8 @@ const ProductView: React.FC = () => {
       setEditStatus("");
       setError("");
       setListError("");
+      pendingIdempotencyKey.current = null;
+      pendingIdempotencyCount.current = 0;
       return;
     }
     const loadOrders = async () => {
@@ -140,7 +144,17 @@ const ProductView: React.FC = () => {
       return;
     }
     try {
-      const result = await api.createOrder(token, selectedProductId, quantity);
+      if (!pendingIdempotencyKey.current) {
+        pendingIdempotencyKey.current = crypto.randomUUID();
+      }
+      pendingIdempotencyCount.current += 1;
+      const idempotencyKey = pendingIdempotencyKey.current;
+      const result = await api.createOrder(
+        token,
+        selectedProductId,
+        quantity,
+        idempotencyKey
+      );
       dispatch(setOrderResult({ status: result.status, message: result.message }));
       if (result.status === "CONFIRMED") {
         setStock((prev) => Math.max(prev - quantity, 0));
@@ -170,6 +184,11 @@ const ProductView: React.FC = () => {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Order request failed";
       dispatch(setOrderResult({ status: "FAILED", message }));
+    } finally {
+      pendingIdempotencyCount.current = Math.max(0, pendingIdempotencyCount.current - 1);
+      if (pendingIdempotencyCount.current === 0) {
+        pendingIdempotencyKey.current = null;
+      }
     }
   };
 

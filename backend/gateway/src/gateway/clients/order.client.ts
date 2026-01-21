@@ -3,7 +3,12 @@ import { ClientGrpc } from "@nestjs/microservices";
 import { firstValueFrom } from "rxjs";
 
 interface OrderGrpcService {
-  CreateOrder(request: { product_id: string; quantity: number; user_id: string }): unknown;
+  CreateOrder(request: {
+    product_id: string;
+    quantity: number;
+    user_id: string;
+    idempotency_key?: string;
+  }): unknown;
   ListOrders(request: { user_id: string; page: number; limit: number }): unknown;
 }
 
@@ -17,7 +22,12 @@ export class OrderClient implements OnModuleInit {
     this.service = this.client.getService<OrderGrpcService>("OrderService");
   }
 
-  async createOrder(productId: string, quantity: number, userId: string) {
+  async createOrder(
+    productId: string,
+    quantity: number,
+    userId: string,
+    idempotencyKey?: string
+  ) {
     if (!this.service) {
       return {
         success: false,
@@ -32,6 +42,7 @@ export class OrderClient implements OnModuleInit {
           product_id: productId,
           quantity,
           user_id: userId,
+          idempotency_key: idempotencyKey,
         }) as any
       )) as {
         success: boolean;

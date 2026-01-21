@@ -82,12 +82,22 @@ export const api = {
       )
     ),
 
-  createOrder: (token: string, productId: string, quantity: number) =>
+  createOrder: (
+    token: string,
+    productId: string,
+    quantity: number,
+    idempotencyKey?: string
+  ) =>
     unwrap<{ order_id: string; status: string; message: string }>(
       http.post(
         routes.orders.create,
         { productId, quantity },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+          },
+        }
       )
     ),
 

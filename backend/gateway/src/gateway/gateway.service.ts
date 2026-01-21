@@ -190,6 +190,7 @@ export class GatewayService {
     productId: string;
     quantity: number;
     userId: string;
+    idempotencyKey?: string;
   }) {
     this.logger.log(
       `Create order request product=${payload.productId} user=${payload.userId}`
@@ -198,7 +199,8 @@ export class GatewayService {
       const response = await this.orderClient.createOrder(
         payload.productId,
         payload.quantity,
-        payload.userId
+        payload.userId,
+        payload.idempotencyKey
       );
       const result = assertGrpcSuccess(response);
       return successResponse(
