@@ -3,7 +3,12 @@ import { Server } from "socket.io";
 import { ConfigService } from "@nestjs/config";
 import { HealthService } from "./health.service";
 
-@WebSocketGateway({ path: "/health/socket" })
+@WebSocketGateway({
+  path: "/health/socket",
+  cors: {
+    origin: "*",
+  },
+})
 export class HealthGateway {
   @WebSocketServer()
   private readonly server!: Server;

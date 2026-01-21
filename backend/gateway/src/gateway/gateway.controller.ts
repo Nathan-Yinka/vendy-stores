@@ -24,6 +24,8 @@ import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { CreateProductDto } from "./dto/create-product.dto";
+import { ListOrdersDto } from "./dto/list-orders.dto";
+import { UpdateStockDto } from "./dto/update-stock.dto";
 import { CacheService } from "../common/cache/cache.service";
 import { assertGrpcSuccess } from "../common/grpc-response";
 import { ListProductsDto } from "./dto/list-products.dto";
@@ -225,6 +227,39 @@ export class GatewayController {
     }
   }
 
+  @Post("/products/:id/stock")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Update product stock (admin only)" })
+  @ApiBody({ type: UpdateStockDto })
+  @ApiResponse({ status: 200, description: "Stock updated" })
+  async updateStock(@Param("id") id: string, @Body() body: UpdateStockDto) {
+    this.logger.log(`Update stock request product=${id}`);
+    try {
+      const response = await this.inventoryClient.updateStock({
+        product_id: id,
+        stock: body.stock,
+      });
+      const product = assertGrpcSuccess(response);
+      await this.cache.del(`product:${id}`);
+      return successResponse(
+        {
+          productId: product.product_id,
+          name: product.name,
+          stock: product.stock,
+        },
+        "Stock updated"
+      );
+    } catch (error) {
+      this.logger.error(`Inventory service error on update stock ${id}`);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new ServiceUnavailableException("Inventory service unavailable");
+    }
+  }
+
   @Post("/orders")
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -255,6 +290,71 @@ export class GatewayController {
       );
     } catch (error) {
       this.logger.error(`Order service error on create order product=${body.productId}`);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new ServiceUnavailableException("Order service unavailable");
+    }
+  }
+
+  @Get("/orders")
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "List user orders" })
+  @ApiQuery({ type: ListOrdersDto })
+  @ApiResponse({ status: 200, description: "Orders fetched" })
+  async listOrders(
+    @AuthUser() user: AuthUserPayload | undefined,
+    @Query() query: ListOrdersDto
+  ) {
+
+    if (!user) {
+      throw new UnauthorizedException("Unauthorized");
+    }
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    try {
+      const response = await this.orderClient.listOrders({
+        user_id: user?.userId ?? "",
+        page,
+        limit,
+      });
+      const data = assertGrpcSuccess(response);
+      const itemsWithNames = await Promise.all(
+        (data.items ?? []).map(async (item) => {
+          const cacheKey = `product:${item.product_id}`;
+          const cached = await this.cache.get<{
+            product_id: string;
+            name: string;
+            stock: number;
+          }>(cacheKey);
+          if (cached?.name) {
+            return { ...item, product_name: cached.name };
+          }
+
+          try {
+            const productResponse = await this.inventoryClient.getProduct(
+              item.product_id
+            );
+            const product = assertGrpcSuccess(productResponse);
+            await this.cache.set(cacheKey, product);
+            return { ...item, product_name: product.name };
+          } catch {
+            return { ...item, product_name: "" };
+          }
+        })
+      );
+      return successResponse(
+        {
+          items: itemsWithNames,
+          page: data.page,
+          limit: data.limit,
+          total: data.total,
+        },
+        "Orders fetched"
+      );
+    } catch (error) {
+      this.logger.error(`Order service error on list orders user=${user.userId}`);
       if (error instanceof HttpException) {
         throw error;
       }

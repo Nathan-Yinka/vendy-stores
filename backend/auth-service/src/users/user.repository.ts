@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { User } from "./user.entity";
+import bcrypt from "bcryptjs";
 
 @Injectable()
 export class UserRepository {
@@ -11,17 +12,22 @@ export class UserRepository {
     const existing = await this.repository.findOne({
       where: { email: "lead@vendyz.dev" },
     });
+    const hashedPassword = await bcrypt.hash("flashsale", 10);
+    const seedUser = {
+      id: existing?.id ?? "user-1",
+      email: "lead@vendyz.dev",
+      role: "ADMIN",
+      first_name: "Lead",
+      last_name: "Engineer",
+      password: hashedPassword,
+    };
+
     if (!existing) {
-      await this.repository.save({
-        id: "user-1",
-        email: "lead@vendyz.dev",
-        role: "ADMIN",
-        first_name: "Lead",
-        last_name: "Engineer",
-        password:
-          "$2a$10$Q5R.XW.Fx2lIihY2l5fSEu0aMWEa8m9GQfq2R2zpcY45KpP2k9BEO",
-      });
+      await this.repository.save(seedUser);
+      return;
     }
+
+    await this.repository.update({ id: existing.id }, seedUser);
   }
 
   async findByEmail(email: string): Promise<User | null> {

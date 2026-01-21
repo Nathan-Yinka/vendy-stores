@@ -13,9 +13,13 @@ async function bootstrap() {
       url: config.get<string>("inventory.grpcUrl", "0.0.0.0:50051"),
       package: "inventory",
       protoPath: config.get<string>("inventory.protoPath"),
+      loader: {
+        keepCase: true,
+      },
     },
   });
 
+  await app.init();
   await app.startAllMicroservices();
 }
 

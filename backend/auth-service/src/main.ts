@@ -15,6 +15,9 @@ async function bootstrap() {
       url: config.get<string>("auth.grpcUrl", "0.0.0.0:50053"),
       package: "auth",
       protoPath: config.get<string>("auth.protoPath"),
+      loader: {
+        keepCase: true,
+      },
     },
   });
 
@@ -27,6 +30,7 @@ async function bootstrap() {
     })
   );
 
+  await app.init();
   await app.startAllMicroservices();
 }
 

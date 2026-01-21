@@ -81,8 +81,11 @@ export class OrderService {
           order_id: orderId,
         }) as any
       )) as ReserveStockResponse;
-    } catch {
-      this.logger.error(`Reserve stock failed for order ${orderId}`);
+    } catch (error) {
+      this.logger.error(
+        `Reserve stock failed for order ${orderId}`,
+        error as Error
+      );
       return [
         {
           orderId,
@@ -91,6 +94,44 @@ export class OrderService {
           code: "INVENTORY_UNAVAILABLE",
         },
         "Inventory service unavailable",
+      ];
+    }
+
+    if (!response.success) {
+      const failureMessage = response.message || "Inventory reservation failed";
+      const failureCode = response.code || "RESERVE_FAILED";
+      this.logger.warn(
+        `Reserve stock failed for order ${orderId}: ${failureCode} ${failureMessage}`
+      );
+
+      await this.repository.create({
+        id: orderId,
+        product_id: productId,
+        quantity,
+        user_id: userId,
+        status: "FAILED",
+      });
+
+      await this.publisher.publish(
+        this.config.get<string>("order.createdSubject", "order.created"),
+        {
+          orderId,
+          productId,
+          quantity,
+          userId,
+          status: "FAILED",
+          reason: failureMessage,
+        }
+      );
+
+      return [
+        {
+          orderId,
+          status: "FAILED",
+          message: failureMessage,
+          code: failureCode,
+        },
+        failureMessage,
       ];
     }
 
@@ -139,5 +180,25 @@ export class OrderService {
       return [null, "Order not found"];
     }
     return [order, null];
+  }
+
+  /**
+   * List confirmed orders for a user.
+   */
+  async listOrders(
+    userId: string,
+    page: number,
+    limit: number
+  ): Promise<
+    Result<{ items: Order[]; total: number; page: number; limit: number }>
+  > {
+    this.logger.log(`List orders user=${userId}`);
+    try {
+      const result = await this.repository.listByUser(userId, page, limit);
+      return [result, null];
+    } catch {
+      this.logger.error(`List orders failed user=${userId}`);
+      return [null, "List orders failed"];
+    }
   }
 }

@@ -5,6 +5,7 @@ package orders;
 service OrderService {
   rpc CreateOrder (CreateOrderRequest) returns (CreateOrderResponse);
   rpc GetOrder (GetOrderRequest) returns (GetOrderResponse);
+  rpc ListOrders (ListOrdersRequest) returns (ListOrdersResponse);
 }
 
 message CreateOrderRequest {
@@ -43,4 +44,24 @@ message GetOrderResponse {
   string code = 2;
   string message = 3;
   OrderDetails data = 4;
+}
+
+message ListOrdersRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message ListOrdersData {
+  repeated OrderDetails items = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  int32 total = 4;
+}
+
+message ListOrdersResponse {
+  bool success = 1;
+  string code = 2;
+  string message = 3;
+  ListOrdersData data = 4;
 }

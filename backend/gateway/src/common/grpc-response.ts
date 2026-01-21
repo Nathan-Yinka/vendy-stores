@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
+  InternalServerErrorException,
   NotFoundException,
   ServiceUnavailableException,
   UnauthorizedException,
@@ -24,8 +26,12 @@ export const assertGrpcSuccess = <T>(response: GrpcResponse<T>): T => {
     case "INVALID_CREDENTIALS":
     case "INVALID_TOKEN":
       throw new UnauthorizedException(message);
+    case "FORBIDDEN":
+      throw new ForbiddenException(message);
     case "EMAIL_EXISTS":
+      throw new ConflictException(message);
     case "ORDER_FAILED":
+    case "VALIDATION_FAILED":
       throw new BadRequestException(message);
     case "OUT_OF_STOCK":
       throw new ConflictException(message);
@@ -34,10 +40,14 @@ export const assertGrpcSuccess = <T>(response: GrpcResponse<T>): T => {
       throw new NotFoundException(message);
     case "INVENTORY_UNAVAILABLE":
     case "AUTH_UNAVAILABLE":
+    case "ORDER_UNAVAILABLE":
+      throw new ServiceUnavailableException(message);
     case "RESERVE_FAILED":
     case "CREATE_FAILED":
     case "LIST_FAILED":
-      throw new ServiceUnavailableException(message);
+      throw new InternalServerErrorException(message);
+    case "UPDATE_FAILED":
+      throw new InternalServerErrorException(message);
     default:
       throw new BadRequestException(message);
   }

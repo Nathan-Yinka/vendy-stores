@@ -29,6 +29,9 @@ import { HealthGateway } from "../health/health.gateway";
               "auth.protoPath",
               join(process.cwd(), "proto", "auth.proto")
             ),
+            loader: {
+              keepCase: true,
+            },
           },
         }),
       },
@@ -44,6 +47,9 @@ import { HealthGateway } from "../health/health.gateway";
               "order.protoPath",
               join(process.cwd(), "proto", "order.proto")
             ),
+            loader: {
+              keepCase: true,
+            },
           },
         }),
       },
@@ -59,6 +65,9 @@ import { HealthGateway } from "../health/health.gateway";
               "inventory.protoPath",
               join(process.cwd(), "proto", "inventory.proto")
             ),
+            loader: {
+              keepCase: true,
+            },
           },
         }),
       },

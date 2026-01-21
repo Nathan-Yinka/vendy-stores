@@ -13,9 +13,13 @@ async function bootstrap() {
       url: config.get<string>("order.grpcUrl", "0.0.0.0:50052"),
       package: "orders",
       protoPath: config.get<string>("order.protoPath"),
+      loader: {
+        keepCase: true,
+      },
     },
   });
 
+  await app.init();
   await app.startAllMicroservices();
 }
 

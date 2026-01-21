@@ -16,4 +16,5 @@ export const validationSchema = Joi.object({
   CACHE_TTL_SECONDS: Joi.number().default(10),
   CORS_ORIGIN: Joi.string().default("http://localhost:5173"),
   HEALTH_TIMEOUT_MS: Joi.number().default(15000),
+  HEALTH_SERVICES: Joi.string().default("auth-service,inventory-service,order-service"),
 });

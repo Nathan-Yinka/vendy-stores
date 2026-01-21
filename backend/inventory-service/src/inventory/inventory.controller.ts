@@ -22,6 +22,11 @@ interface ListProductsRequest {
   limit: number;
 }
 
+interface UpdateStockRequest {
+  product_id: string;
+  stock: number;
+}
+
 @Controller()
 export class InventoryController {
   private readonly logger = new Logger(InventoryController.name);
@@ -136,6 +141,34 @@ export class InventoryController {
         page: result.page,
         limit: result.limit,
         total: result.total,
+      },
+    };
+  }
+
+  @GrpcMethod("InventoryService", "UpdateStock")
+  async updateStock(request: UpdateStockRequest) {
+    this.logger.log(`UpdateStock request ${request.product_id}`);
+    const [product, error] = await this.service.updateStock(
+      request.product_id,
+      request.stock
+    );
+    if (!product) {
+      return {
+        success: false,
+        code: error === "Product not found" ? "PRODUCT_NOT_FOUND" : "UPDATE_FAILED",
+        message: error ?? "Update stock failed",
+        data: { product_id: "", name: "", stock: 0 },
+      };
+    }
+
+    return {
+      success: true,
+      code: "OK",
+      message: "Stock updated",
+      data: {
+        product_id: product.id,
+        name: product.name,
+        stock: product.stock,
       },
     };
   }

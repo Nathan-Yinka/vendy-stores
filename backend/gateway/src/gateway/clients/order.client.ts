@@ -4,6 +4,7 @@ import { firstValueFrom } from "rxjs";
 
 interface OrderGrpcService {
   CreateOrder(request: { product_id: string; quantity: number; user_id: string }): unknown;
+  ListOrders(request: { user_id: string; page: number; limit: number }): unknown;
 }
 
 @Injectable()
@@ -18,20 +19,68 @@ export class OrderClient implements OnModuleInit {
 
   async createOrder(productId: string, quantity: number, userId: string) {
     if (!this.service) {
-      throw new Error("Order service unavailable");
+      return {
+        success: false,
+        code: "ORDER_UNAVAILABLE",
+        message: "Order service unavailable",
+      };
     }
 
-    return firstValueFrom(
-      this.service.CreateOrder({
-        product_id: productId,
-        quantity,
-        user_id: userId,
-      }) as any
-    ) as Promise<{
-      success: boolean;
-      code: string;
-      message: string;
-      data?: { order_id: string; status: string; message: string };
-    }>;
+    try {
+      return (await firstValueFrom(
+        this.service.CreateOrder({
+          product_id: productId,
+          quantity,
+          user_id: userId,
+        }) as any
+      )) as {
+        success: boolean;
+        code: string;
+        message: string;
+        data?: { order_id: string; status: string; message: string };
+      };
+    } catch {
+      return {
+        success: false,
+        code: "ORDER_UNAVAILABLE",
+        message: "Order service unavailable",
+      };
+    }
+  }
+
+  async listOrders(payload: { user_id: string; page: number; limit: number }) {
+    if (!this.service) {
+      return {
+        success: false,
+        code: "ORDER_UNAVAILABLE",
+        message: "Order service unavailable",
+      };
+    }
+
+    try {
+      return (await firstValueFrom(this.service.ListOrders(payload) as any)) as {
+        success: boolean;
+        code: string;
+        message: string;
+        data?: {
+          items: {
+            order_id: string;
+            status: string;
+            product_id: string;
+            quantity: number;
+            user_id: string;
+          }[];
+          page: number;
+          limit: number;
+          total: number;
+        };
+      };
+    } catch {
+      return {
+        success: false,
+        code: "ORDER_UNAVAILABLE",
+        message: "Order service unavailable",
+      };
+    }
   }
 }

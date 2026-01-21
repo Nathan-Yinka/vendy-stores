@@ -25,6 +25,9 @@ import { NatsPublisher } from "../common/events/nats.publisher";
               "inventory.protoPath",
               join(process.cwd(), "proto", "inventory.proto")
             ),
+            loader: {
+              keepCase: true,
+            },
           },
         }),
       },

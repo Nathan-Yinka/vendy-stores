@@ -122,6 +122,35 @@ export class InventoryService {
   }
 
   /**
+   * Update product stock (admin operation).
+   */
+  async updateStock(productId: string, stock: number): Promise<Result<Product>> {
+    this.logger.log(`Update stock product=${productId} stock=${stock}`);
+    let product: Product | null;
+    try {
+      product = await this.repository.updateStock(productId, stock);
+    } catch {
+      this.logger.error(`Update stock failed product=${productId}`);
+      return [null, "Update stock failed"];
+    }
+
+    if (!product) {
+      return [null, "Product not found"];
+    }
+
+    await this.publisher.publish(
+      this.config.get<string>("inventory.createdSubject", "inventory.created"),
+      {
+        productId: product.id,
+        name: product.name,
+        stock: product.stock,
+      }
+    );
+
+    return [product, null];
+  }
+
+  /**
    * List products with pagination.
    */
   async listProducts(

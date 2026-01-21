@@ -36,35 +36,49 @@ export class ProductRepository {
     quantity: number
   ): Promise<{ success: boolean; remaining: number; name: string } | null> {
     return this.dataSource.transaction(async (manager) => {
-      const updated = await manager.query<
-        { id: string; name: string; stock: number }[]
-      >(
-        "UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $1 RETURNING id, name, stock",
-        [quantity, productId]
-      );
-
-      if (updated.length > 0) {
-        return {
-          success: true,
-          remaining: updated[0].stock,
-          name: updated[0].name,
-        };
-      }
-
       const product = await manager.findOne(Product, {
         where: { id: productId },
+        lock: { mode: "pessimistic_write" },
       });
 
       if (!product) {
         return null;
       }
 
-      return { success: false, remaining: product.stock, name: product.name };
+      if (product.stock < quantity) {
+        return { success: false, remaining: product.stock, name: product.name };
+      }
+
+      product.stock -= quantity;
+      await manager.save(product);
+
+      return {
+        success: true,
+        remaining: product.stock,
+        name: product.name,
+      };
     });
   }
 
   async createProduct(product: { id: string; name: string; stock: number }) {
     return this.repository.save(product);
+  }
+
+  async updateStock(
+    productId: string,
+    stock: number
+  ): Promise<Product | null> {
+    return this.dataSource.transaction(async (manager) => {
+      const product = await manager.findOne(Product, {
+        where: { id: productId },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!product) {
+        return null;
+      }
+      product.stock = stock;
+      return manager.save(product);
+    });
   }
 
   async listProducts(

@@ -35,5 +35,8 @@ export const configuration = () => ({
   },
   health: {
     timeoutMs: process.env.HEALTH_TIMEOUT_MS ?? "15000",
+    services:
+      process.env.HEALTH_SERVICES ??
+      "auth-service,inventory-service,order-service",
   },
 });

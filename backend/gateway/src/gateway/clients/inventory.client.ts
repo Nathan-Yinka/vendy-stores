@@ -6,6 +6,7 @@ interface InventoryGrpcService {
   GetProduct(request: { product_id: string }): unknown;
   CreateProduct(request: { name: string; stock: number }): unknown;
   ListProducts(request: { page: number; limit: number }): unknown;
+  UpdateStock(request: { product_id: string; stock: number }): unknown;
 }
 
 @Injectable()
@@ -63,6 +64,19 @@ export class InventoryClient implements OnModuleInit {
         limit: number;
         total: number;
       };
+    }>;
+  }
+
+  async updateStock(payload: { product_id: string; stock: number }) {
+    if (!this.service) {
+      throw new Error("Inventory service unavailable");
+    }
+
+    return firstValueFrom(this.service.UpdateStock(payload) as any) as Promise<{
+      success: boolean;
+      code: string;
+      message: string;
+      data?: { product_id: string; name: string; stock: number };
     }>;
   }
 }

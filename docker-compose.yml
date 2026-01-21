@@ -38,8 +38,7 @@ services:
     depends_on:
       - postgres
       - nats
-    ports:
-      - "50051:50051"
+    # no public ports; only gateway talks to this service
 
   order-service:
     build: ./backend/order-service
@@ -59,8 +58,7 @@ services:
       - postgres
       - inventory-service
       - nats
-    ports:
-      - "50052:50052"
+    # no public ports; only gateway talks to this service
 
   auth-service:
     build: ./backend/auth-service
@@ -77,8 +75,7 @@ services:
       NATS_URL: nats://nats:4222
     depends_on:
       - postgres
-    ports:
-      - "50053:50053"
+    # no public ports; only gateway talks to this service
 
   gateway:
     build: ./backend/gateway
@@ -96,6 +93,7 @@ services:
       INVENTORY_RESERVED_SUBJECT: inventory.reserved
       INVENTORY_CREATED_SUBJECT: inventory.created
       HEALTH_PING_SUBJECT: health.ping
+      HEALTH_SERVICES: auth-service,inventory-service,order-service
       CACHE_TTL_SECONDS: 10
     depends_on:
       - auth-service

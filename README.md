@@ -23,17 +23,18 @@ password: flashsale
 **Database choice:** Postgres
 - Strong transactions and row-level locking for inventory safety.
 
-**Race condition handling:** Atomic update inside transaction
-- `UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $1`.
-- Prevents oversell under high concurrency.
+**Race condition handling:** Transaction + row lock
+- Reserve stock uses a transaction with a row lock to prevent oversell.
+- Ensures only one buyer can decrement the last unit.
 
 **REST vs Event-driven:**
 - REST at the Gateway for browser clients.
 - gRPC for service-to-service calls (typed, fast, internal).
 - NATS for async events (audit, analytics, cache invalidation).
+- We keep order creation synchronous to avoid “pending” orders that later fail, which is a poor user experience during flash sales.
 
 **Why gRPC:**
-- Strict contracts with proto files; low-latency internal calls.
+- Strict contracts with proto files; low-latency internal calls under high load.
 
 **Why a Gateway:**
 - Single entry point for auth, validation, and response formatting.

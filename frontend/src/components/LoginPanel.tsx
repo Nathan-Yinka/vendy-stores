@@ -1,100 +1,178 @@
-import React from "react";
-import { connect } from "react-redux";
-import { ApiClient } from "../api/client";
-import { setCredentials } from "../app/slices/authSlice";
-import { RootState } from "../app/store";
+import React, { useEffect, useState } from "react";
+import { api } from "../api";
+import { clearCredentials, setCredentials } from "../app/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
 
-const api = new ApiClient(
-  import.meta.env.VITE_GATEWAY_URL ?? "http://localhost:3000"
-);
+const LoginPanel: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { token, email, role } = useAppSelector((state) => state.auth);
+  const [formEmail, setFormEmail] = useState("lead@vendyz.dev");
+  const [password, setPassword] = useState("flashsale");
+  const [status, setStatus] = useState("");
+  const [showRegister, setShowRegister] = useState(false);
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regFirstName, setRegFirstName] = useState("");
+  const [regLastName, setRegLastName] = useState("");
+  const [regStatus, setRegStatus] = useState("");
 
-interface LoginPanelProps {
-  token: string;
-  email: string;
-  setCredentials: (payload: { token: string; email: string; userId: string }) => void;
-}
+  useEffect(() => {
+    setStatus("");
+    setRegStatus("");
+    if (token) {
+      setShowRegister(false);
+    }
+  }, [token]);
 
-interface LoginPanelState {
-  email: string;
-  password: string;
-  status: string;
-}
-
-class LoginPanel extends React.Component<LoginPanelProps, LoginPanelState> {
-  state: LoginPanelState = {
-    email: "lead@vendyz.dev",
-    password: "flashsale",
-    status: "",
-  };
-
-  private async handleLogin(event: React.FormEvent<HTMLFormElement>) {
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    this.setState({ status: "" });
+    setStatus("");
 
     try {
-      const result = await api.login(this.state.email, this.state.password);
-      if (!result.token) {
-        this.setState({ status: "Invalid credentials" });
-        return;
-      }
-
-      this.props.setCredentials({
-        token: result.token,
-        email: result.email,
-        userId: result.userId,
-      });
-      this.setState({ status: "Signed in" });
+      const result = await api.login(formEmail, password);
+      dispatch(
+        setCredentials({
+          token: result.token,
+          email: result.email,
+          userId: result.userId,
+          role: result.role ?? "USER",
+        })
+      );
+      setStatus("Signed in");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Login failed";
-      this.setState({ status: message });
+      setStatus(message);
     }
-  }
+  };
 
-  render() {
-    return (
-      <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-8 shadow-xl">
-        <h2 className="text-2xl font-semibold">Operator Login</h2>
-        <p className="mt-2 text-sm text-slate-400">
-          Use the seeded account to authenticate before buying.
-        </p>
-        <form className="mt-6 space-y-4" onSubmit={(event) => void this.handleLogin(event)}>
+  const handleLogout = async () => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      await api.logout(token);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Logout failed";
+      setStatus(message);
+    } finally {
+      dispatch(clearCredentials());
+      setStatus("");
+      setRegStatus("");
+      setShowRegister(false);
+    }
+  };
+
+  const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setRegStatus("");
+    try {
+      await api.register({
+        email: regEmail,
+        password: regPassword,
+        firstName: regFirstName,
+        lastName: regLastName,
+      });
+      setRegStatus("Registration successful. Please log in.");
+      setShowRegister(false);
+      setFormEmail(regEmail);
+      setPassword("");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Registration failed";
+      setRegStatus(message);
+    }
+  };
+
+  return (
+    <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-8 shadow-xl">
+      <h2 className="text-2xl font-semibold">Operator Login</h2>
+      <p className="mt-2 text-sm text-slate-400">
+        Use the seeded account to authenticate before buying.
+      </p>
+      <form className="mt-6 space-y-4" onSubmit={(event) => void handleLogin(event)}>
+        <input
+          className="w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm"
+          type="email"
+          value={formEmail}
+          onChange={(event) => setFormEmail(event.target.value)}
+          placeholder="Email"
+        />
+        <input
+          className="w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm"
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          placeholder="Password"
+        />
+        <button
+          type="submit"
+          className="w-full rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-white"
+        >
+          Login
+        </button>
+      </form>
+      {token && (
+        <div className="mt-3 space-y-2 text-sm text-emerald-200">
+          <p>Signed in as {email}</p>
+          <p className="text-[11px] uppercase tracking-widest text-slate-400">
+            Role: {role || "USER"}
+          </p>
+          <button
+            type="button"
+            className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-200 hover:border-slate-500"
+            onClick={() => void handleLogout()}
+          >
+            Logout
+          </button>
+        </div>
+      )}
+      {status && !token && <p className="mt-3 text-sm text-rose-300">{status}</p>}
+      <button
+        type="button"
+        className="mt-4 text-xs text-slate-400 underline underline-offset-4"
+        onClick={() => setShowRegister((prev) => !prev)}
+      >
+        {showRegister ? "Back to login" : "Create a new account"}
+      </button>
+      {showRegister && (
+        <form className="mt-4 space-y-3" onSubmit={(event) => void handleRegister(event)}>
+          <input
+            className="w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm"
+            placeholder="First name"
+            value={regFirstName}
+            onChange={(event) => setRegFirstName(event.target.value)}
+          />
+          <input
+            className="w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm"
+            placeholder="Last name"
+            value={regLastName}
+            onChange={(event) => setRegLastName(event.target.value)}
+          />
           <input
             className="w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm"
             type="email"
-            value={this.state.email}
-            onChange={(event) => this.setState({ email: event.target.value })}
             placeholder="Email"
+            value={regEmail}
+            onChange={(event) => setRegEmail(event.target.value)}
           />
           <input
             className="w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm"
             type="password"
-            value={this.state.password}
-            onChange={(event) => this.setState({ password: event.target.value })}
             placeholder="Password"
+            value={regPassword}
+            onChange={(event) => setRegPassword(event.target.value)}
           />
           <button
             type="submit"
-            className="w-full rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-white"
+            className="w-full rounded-xl border border-emerald-400/40 bg-emerald-400/20 px-4 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-400/30"
           >
-            Login
+            Register
           </button>
+          {regStatus && <p className="text-xs text-slate-400">{regStatus}</p>}
         </form>
-        {this.props.token && (
-          <p className="mt-3 text-sm text-emerald-200">Signed in as {this.props.email}</p>
-        )}
-        {this.state.status && !this.props.token && (
-          <p className="mt-3 text-sm text-rose-300">{this.state.status}</p>
-        )}
-      </section>
-    );
-  }
-}
+      )}
+    </section>
+  );
+};
 
-const mapState = (state: RootState) => ({
-  token: state.auth.token,
-  email: state.auth.email,
-});
-
-const mapDispatch = { setCredentials };
-
-export default connect(mapState, mapDispatch)(LoginPanel);
+export default LoginPanel;
