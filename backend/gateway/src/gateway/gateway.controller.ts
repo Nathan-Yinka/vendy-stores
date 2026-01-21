@@ -53,7 +53,38 @@ export class GatewayController {
   @Post("/auth/login")
   @ApiOperation({ summary: "Login user" })
   @ApiBody({ type: LoginDto })
-  @ApiResponse({ status: 200, description: "Login success" })
+  @ApiResponse({
+    status: 200,
+    description: "Login success",
+    schema: {
+      example: {
+        success: true,
+        message: "Login successful",
+        data: {
+          token: "jwt-token",
+          userId: "user-1",
+          email: "lead@vendyz.dev",
+          firstName: "Lead",
+          lastName: "Engineer",
+          role: "ADMIN",
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Invalid credentials",
+    schema: {
+      example: { success: false, message: "Invalid credentials", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 503,
+    description: "Auth service unavailable",
+    schema: {
+      example: { success: false, message: "Auth service unavailable", data: null },
+    },
+  })
   async login(@Body() body: LoginDto) {
     this.logger.log(`Login request for ${body.email}`);
     try {
@@ -83,7 +114,37 @@ export class GatewayController {
   @Post("/auth/register")
   @ApiOperation({ summary: "Register user" })
   @ApiBody({ type: RegisterDto })
-  @ApiResponse({ status: 200, description: "Registration success" })
+  @ApiResponse({
+    status: 200,
+    description: "Registration success",
+    schema: {
+      example: {
+        success: true,
+        message: "Registration successful",
+        data: {
+          userId: "user-2",
+          email: "jane@vendyz.dev",
+          firstName: "Jane",
+          lastName: "Doe",
+          role: "USER",
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: "Email already exists",
+    schema: {
+      example: { success: false, message: "Email already exists", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 503,
+    description: "Auth service unavailable",
+    schema: {
+      example: { success: false, message: "Auth service unavailable", data: null },
+    },
+  })
   async register(@Body() body: RegisterDto) {
     this.logger.log(`Register request for ${body.email}`);
     try {
@@ -117,7 +178,31 @@ export class GatewayController {
   @Post("/auth/logout")
   @ApiOperation({ summary: "Logout user" })
   @ApiBearerAuth()
-  @ApiResponse({ status: 200, description: "Logout success" })
+  @ApiResponse({
+    status: 200,
+    description: "Logout success",
+    schema: {
+      example: {
+        success: true,
+        message: "Logout successful",
+        data: { revoked: true },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized",
+    schema: {
+      example: { success: false, message: "Unauthorized", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 503,
+    description: "Auth service unavailable",
+    schema: {
+      example: { success: false, message: "Auth service unavailable", data: null },
+    },
+  })
   @UseGuards(AuthGuard)
   async logout(@Headers("authorization") authorization?: string) {
     if (!authorization) {
@@ -140,7 +225,35 @@ export class GatewayController {
 
   @Get("/products/:id")
   @ApiOperation({ summary: "Fetch product" })
-  @ApiResponse({ status: 200, description: "Product fetched" })
+  @ApiResponse({
+    status: 200,
+    description: "Product fetched",
+    schema: {
+      example: {
+        success: true,
+        message: "Product fetched",
+        data: {
+          product_id: "product-1",
+          name: "Vendyz Flash Item",
+          stock: 1,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Product not found",
+    schema: {
+      example: { success: false, message: "Product not found", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 503,
+    description: "Inventory service unavailable",
+    schema: {
+      example: { success: false, message: "Inventory service unavailable", data: null },
+    },
+  })
   async getProduct(@Param("id") id: string) {
     this.logger.log(`Get product ${id}`);
     try {
@@ -170,7 +283,31 @@ export class GatewayController {
   @Get("/products")
   @ApiOperation({ summary: "List products" })
   @ApiQuery({ type: ListProductsDto })
-  @ApiResponse({ status: 200, description: "Products fetched" })
+  @ApiResponse({
+    status: 200,
+    description: "Products fetched",
+    schema: {
+      example: {
+        success: true,
+        message: "Products fetched",
+        data: {
+          items: [
+            { product_id: "product-1", name: "Vendyz Flash Item", stock: 1 },
+          ],
+          page: 1,
+          limit: 10,
+          total: 1,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 503,
+    description: "Inventory service unavailable",
+    schema: {
+      example: { success: false, message: "Inventory service unavailable", data: null },
+    },
+  })
   async listProducts(@Query() query: ListProductsDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
@@ -193,7 +330,42 @@ export class GatewayController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create product (admin only)" })
   @ApiBody({ type: CreateProductDto })
-  @ApiResponse({ status: 200, description: "Product created" })
+  @ApiResponse({
+    status: 200,
+    description: "Product created",
+    schema: {
+      example: {
+        success: true,
+        message: "Product created",
+        data: {
+          productId: "product-9",
+          name: "Vendyz Flash Item",
+          stock: 10,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized",
+    schema: {
+      example: { success: false, message: "Unauthorized", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden",
+    schema: {
+      example: { success: false, message: "Forbidden", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: "Create product failed",
+    schema: {
+      example: { success: false, message: "Create product failed", data: null },
+    },
+  })
   async createProduct(
     @AuthUser() user: AuthUserPayload | undefined,
     @Body() body: CreateProductDto
@@ -233,7 +405,49 @@ export class GatewayController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Update product stock (admin only)" })
   @ApiBody({ type: UpdateStockDto })
-  @ApiResponse({ status: 200, description: "Stock updated" })
+  @ApiResponse({
+    status: 200,
+    description: "Stock updated",
+    schema: {
+      example: {
+        success: true,
+        message: "Stock updated",
+        data: {
+          productId: "product-1",
+          name: "Vendyz Flash Item",
+          stock: 20,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized",
+    schema: {
+      example: { success: false, message: "Unauthorized", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Forbidden",
+    schema: {
+      example: { success: false, message: "Forbidden", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Product not found",
+    schema: {
+      example: { success: false, message: "Product not found", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: "Update stock failed",
+    schema: {
+      example: { success: false, message: "Update stock failed", data: null },
+    },
+  })
   async updateStock(@Param("id") id: string, @Body() body: UpdateStockDto) {
     this.logger.log(`Update stock request product=${id}`);
     try {
@@ -265,7 +479,49 @@ export class GatewayController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create order" })
   @ApiBody({ type: CreateOrderDto })
-  @ApiResponse({ status: 200, description: "Order processed" })
+  @ApiResponse({
+    status: 200,
+    description: "Order processed",
+    schema: {
+      example: {
+        success: true,
+        message: "Order processed",
+        data: {
+          orderId: "order-1",
+          status: "CONFIRMED",
+          message: "Reserved",
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized",
+    schema: {
+      example: { success: false, message: "Unauthorized", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Product not found",
+    schema: {
+      example: { success: false, message: "Product not found", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 409,
+    description: "Out of stock",
+    schema: {
+      example: { success: false, message: "Out of stock", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 503,
+    description: "Order service unavailable",
+    schema: {
+      example: { success: false, message: "Order service unavailable", data: null },
+    },
+  })
   async createOrder(
     @AuthUser() user: AuthUserPayload | undefined,
     @Body() body: CreateOrderDto
@@ -302,7 +558,45 @@ export class GatewayController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "List user orders" })
   @ApiQuery({ type: ListOrdersDto })
-  @ApiResponse({ status: 200, description: "Orders fetched" })
+  @ApiResponse({
+    status: 200,
+    description: "Orders fetched",
+    schema: {
+      example: {
+        success: true,
+        message: "Orders fetched",
+        data: {
+          items: [
+            {
+              order_id: "order-1",
+              status: "CONFIRMED",
+              product_id: "product-1",
+              product_name: "Vendyz Flash Item",
+              quantity: 1,
+              user_id: "user-1",
+            },
+          ],
+          page: 1,
+          limit: 10,
+          total: 1,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized",
+    schema: {
+      example: { success: false, message: "Unauthorized", data: null },
+    },
+  })
+  @ApiResponse({
+    status: 503,
+    description: "Order service unavailable",
+    schema: {
+      example: { success: false, message: "Order service unavailable", data: null },
+    },
+  })
   async listOrders(
     @AuthUser() user: AuthUserPayload | undefined,
     @Query() query: ListOrdersDto
