@@ -3,8 +3,11 @@ import { store } from "../app/store";
 import { clearCredentials } from "../app/slices/authSlice";
 import { clearOrderResult } from "../app/slices/orderSlice";
 
+const gatewayBase = import.meta.env.VITE_GATEWAY_URL ?? "http://localhost:3000";
+const apiBase = `${gatewayBase.replace(/\/$/, "")}/api/v1`;
+
 export const http = axios.create({
-  baseURL: import.meta.env.VITE_GATEWAY_URL ?? "http://localhost:3000",
+  baseURL: apiBase,
 });
 
 http.interceptors.response.use(

@@ -3,6 +3,7 @@ import { ClientsModule, Transport } from "@nestjs/microservices";
 import { ConfigService } from "@nestjs/config";
 import { join } from "path";
 import { GatewayController } from "./gateway.controller";
+import { GatewayService } from "./gateway.service";
 import { AuthClient } from "./clients/auth.client";
 import { OrderClient } from "./clients/order.client";
 import { InventoryClient } from "./clients/inventory.client";
@@ -78,6 +79,7 @@ import { HealthGateway } from "../health/health.gateway";
     AuthClient,
     OrderClient,
     InventoryClient,
+    GatewayService,
     AuthGuard,
     RolesGuard,
     CacheService,
